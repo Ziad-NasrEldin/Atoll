@@ -85,8 +85,14 @@ func maxAllowedNotchWidth() -> CGFloat {
     maxAllowedNotchWidth(for: nil)
 }
 
-func maxAllowedNotchHeight() -> CGFloat {
-    let visibleHeight = NSScreen.main?.visibleFrame.height ?? 800
+func maxAllowedNotchHeight(for screenName: String? = nil) -> CGFloat {
+    let screen: NSScreen?
+    if let screenName {
+        screen = NSScreen.screens.first { $0.localizedName == screenName }
+    } else {
+        screen = NSScreen.main
+    }
+    let visibleHeight = screen?.visibleFrame.height ?? 800
     return max(visibleHeight - 60, 200)
 }
 

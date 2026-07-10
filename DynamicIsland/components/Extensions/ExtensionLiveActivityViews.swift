@@ -182,6 +182,7 @@ private func logExtensionDiagnostics(_ message: String) {
 
 struct ExtensionNotchExperienceTabView: View {
     let payload: ExtensionNotchExperiencePayload
+    let resolvedSurfaceHeight: CGFloat
 
     @Default(.enableExtensionNotchInteractiveWebViews) private var interactiveWebViewsEnabled
 
@@ -191,13 +192,6 @@ struct ExtensionNotchExperienceTabView: View {
     private var allowInteractiveWebViews: Bool {
         interactiveWebViewsEnabled && (tabConfiguration?.allowWebInteraction ?? false)
     }
-    private var requestedSurfaceHeight: CGFloat? {
-        ExtensionNotchSizing.requestedDimension(
-            metadata: descriptor.metadata,
-            key: ExtensionNotchSizing.preferredHeightMetadataKey
-        )
-    }
-
     var body: some View {
         Group {
             if let tabConfiguration {
@@ -271,14 +265,17 @@ struct ExtensionNotchExperienceTabView: View {
     }
 
     private func resolvedWebContentHeight(for descriptor: AtollWidgetWebContentDescriptor) -> CGFloat {
-        guard let requestedSurfaceHeight else {
+        guard ExtensionNotchSizing.requestedDimension(
+            metadata: self.descriptor.metadata,
+            key: ExtensionNotchSizing.preferredHeightMetadataKey
+        ) != nil else {
             return descriptor.preferredHeight
         }
 
-        // The requested surface height includes the tab header and vertical padding.
-        // Preserve the SDK's default when it is already larger than the available web region.
+        // The resolved host height includes the tab header and vertical padding.
+        // Keep the web region inside that resolved surface even when metadata is oversized.
         let chromeHeight: CGFloat = 78
-        return max(descriptor.preferredHeight, requestedSurfaceHeight - chromeHeight)
+        return max(0, resolvedSurfaceHeight - chromeHeight)
     }
 
     private var tabBackground: some View {

@@ -1102,7 +1102,10 @@ struct ContentView: View {
                                 NotchTerminalView()
                             case .extensionExperience:
                                 if let payload = currentExtensionTabPayload() {
-                                    ExtensionNotchExperienceTabView(payload: payload)
+                                    ExtensionNotchExperienceTabView(
+                                        payload: payload,
+                                        resolvedSurfaceHeight: dynamicNotchSize.height
+                                    )
                                 } else {
                                     NotchHomeView(albumArtNamespace: albumArtNamespace)
                                 }
@@ -2221,8 +2224,8 @@ struct ContentView: View {
                 baseSize: baseSize,
                 requestedWidth: requestedWidth,
                 requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
-                maximumWidth: maxAllowedNotchWidth(),
-                maximumHeight: maxAllowedNotchHeight()
+                maximumWidth: maxAllowedNotchWidth(for: vm.screen),
+                maximumHeight: maxAllowedNotchHeight(for: vm.screen)
             )
         }
 
