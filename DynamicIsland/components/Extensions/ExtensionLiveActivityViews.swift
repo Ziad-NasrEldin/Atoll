@@ -191,6 +191,12 @@ struct ExtensionNotchExperienceTabView: View {
     private var allowInteractiveWebViews: Bool {
         interactiveWebViewsEnabled && (tabConfiguration?.allowWebInteraction ?? false)
     }
+    private var requestedSurfaceHeight: CGFloat? {
+        ExtensionNotchSizing.requestedDimension(
+            metadata: descriptor.metadata,
+            key: ExtensionNotchSizing.preferredHeightMetadataKey
+        )
+    }
 
     var body: some View {
         Group {
@@ -208,7 +214,7 @@ struct ExtensionNotchExperienceTabView: View {
                         }
                         if let webDescriptor = tabConfiguration.webContent {
                             ExtensionWebContentView(descriptor: webDescriptor, allowInteraction: allowInteractiveWebViews)
-                                .frame(height: webDescriptor.preferredHeight)
+                                .frame(height: resolvedWebContentHeight(for: webDescriptor))
                                 .frame(maxWidth: webDescriptor.maximumContentWidth ?? .infinity)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
@@ -262,6 +268,17 @@ struct ExtensionNotchExperienceTabView: View {
             }
             Spacer(minLength: 0)
         }
+    }
+
+    private func resolvedWebContentHeight(for descriptor: AtollWidgetWebContentDescriptor) -> CGFloat {
+        guard let requestedSurfaceHeight else {
+            return descriptor.preferredHeight
+        }
+
+        // The requested surface height includes the tab header and vertical padding.
+        // Preserve the SDK's default when it is already larger than the available web region.
+        let chromeHeight: CGFloat = 78
+        return max(descriptor.preferredHeight, requestedSurfaceHeight - chromeHeight)
     }
 
     private var tabBackground: some View {

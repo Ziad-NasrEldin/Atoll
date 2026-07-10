@@ -176,8 +176,8 @@ struct ContentView: View {
         }
 
         if coordinator.currentView == .extensionExperience {
-            if let preferredHeight = extensionTabPreferredHeight(baseSize: baseSize) {
-                return CGSize(width: baseSize.width, height: preferredHeight)
+            if let preferredSize = extensionTabPreferredSize(baseSize: baseSize) {
+                return preferredSize
             }
             return baseSize
         }
@@ -2201,13 +2201,38 @@ struct ContentView: View {
         return extensionNotchExperienceManager.highestPriorityTabPayload()
     }
 
-    private func extensionTabPreferredHeight(baseSize: CGSize) -> CGFloat? {
-        guard let preferred = currentExtensionTabPayload()?.descriptor.tab?.preferredHeight else {
+    private func extensionTabPreferredSize(baseSize: CGSize) -> CGSize? {
+        guard let payload = currentExtensionTabPayload() else {
             return nil
         }
+
+        let metadata = payload.descriptor.metadata
+        let requestedWidth = ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredWidthMetadataKey
+        )
+        let requestedHeight = ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredHeightMetadataKey
+        )
+
+        if requestedWidth != nil || requestedHeight != nil {
+            return ExtensionNotchSizing.resolvedSize(
+                baseSize: baseSize,
+                requestedWidth: requestedWidth,
+                requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
+                maximumWidth: maxAllowedNotchWidth(),
+                maximumHeight: maxAllowedNotchHeight()
+            )
+        }
+
+        guard let preferred = payload.descriptor.tab?.preferredHeight else {
+            return nil
+        }
+
         let minHeight = baseSize.height
         let maxHeight = baseSize.height + statsAdditionalRowHeight
-        return min(max(preferred, minHeight), maxHeight)
+        return CGSize(width: baseSize.width, height: min(max(preferred, minHeight), maxHeight))
     }
 
     // Estimate the height required for minimalistic overrides (notably web content) and clamp it to the notch bounds.

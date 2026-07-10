@@ -24,6 +24,36 @@ import Defaults
 import Foundation
 import SwiftUI
 
+enum ExtensionNotchSizing {
+    static let preferredWidthMetadataKey = "preferredWidth"
+    static let preferredHeightMetadataKey = "preferredHeight"
+
+    static func requestedDimension(
+        metadata: [String: String],
+        key: String
+    ) -> CGFloat? {
+        guard let rawValue = metadata[key],
+              let value = Double(rawValue),
+              value.isFinite,
+              value > 0 else {
+            return nil
+        }
+        return CGFloat(value)
+    }
+
+    static func resolvedSize(
+        baseSize: CGSize,
+        requestedWidth: CGFloat?,
+        requestedHeight: CGFloat?,
+        maximumWidth: CGFloat,
+        maximumHeight: CGFloat
+    ) -> CGSize {
+        let width = min(max(requestedWidth ?? baseSize.width, baseSize.width), maximumWidth)
+        let height = min(max(requestedHeight ?? baseSize.height, baseSize.height), maximumHeight)
+        return CGSize(width: width, height: height)
+    }
+}
+
 let downloadSneakSize: CGSize = .init(width: 65, height: 1)
 let batterySneakSize: CGSize = .init(width: 160, height: 1)
 
@@ -53,6 +83,11 @@ func maxAllowedNotchWidth(for screenName: String? = nil) -> CGFloat {
 /// Convenience for the main screen.
 func maxAllowedNotchWidth() -> CGFloat {
     maxAllowedNotchWidth(for: nil)
+}
+
+func maxAllowedNotchHeight() -> CGFloat {
+    let visibleHeight = NSScreen.main?.visibleFrame.height ?? 800
+    return max(visibleHeight - 60, 200)
 }
 
 // MARK: - Tab-Based Notch Width
