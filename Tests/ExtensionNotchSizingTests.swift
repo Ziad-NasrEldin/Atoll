@@ -6,12 +6,20 @@ struct ExtensionNotchSizingTests {
     static func main() {
         precondition(
             ExtensionNotchSizing.supportsExpandedSurface(
-                bundleIdentifier: "com.ziadnasreldin.ZoidCoach"
+                bundleIdentifier: "com.ziadnasreldin.ZoidCoach",
+                isAuthenticatedSource: true
             )
         )
         precondition(
             !ExtensionNotchSizing.supportsExpandedSurface(
-                bundleIdentifier: "com.example.UnrelatedExtension"
+                bundleIdentifier: "com.example.UnrelatedExtension",
+                isAuthenticatedSource: true
+            )
+        )
+        precondition(
+            !ExtensionNotchSizing.supportsExpandedSurface(
+                bundleIdentifier: "com.ziadnasreldin.ZoidCoach",
+                isAuthenticatedSource: false
             )
         )
         precondition(ExtensionNotchSizing.requestedDimension(metadata: [:], key: "preferredWidth") == nil)

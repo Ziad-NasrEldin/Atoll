@@ -2209,9 +2209,7 @@ struct ContentView: View {
             return nil
         }
 
-        if ExtensionNotchSizing.supportsExpandedSurface(
-            bundleIdentifier: payload.bundleIdentifier
-        ) {
+        if payload.allowsExpandedSurface == true {
             let metadata = payload.descriptor.metadata
             let requestedWidth = ExtensionNotchSizing.requestedDimension(
                 metadata: metadata,
@@ -2248,9 +2246,7 @@ struct ContentView: View {
     }
 
     private func extensionTabContentSize(for payload: ExtensionNotchExperiencePayload) -> CGSize? {
-        guard ExtensionNotchSizing.supportsExpandedSurface(
-            bundleIdentifier: payload.bundleIdentifier
-        ) else {
+        guard payload.allowsExpandedSurface == true else {
             return nil
         }
         let metadata = payload.descriptor.metadata

@@ -153,7 +153,11 @@ final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtoc
             let descriptor = try service.decoder.decode(AtollNotchExperienceDescriptor.self, from: descriptorData)
             try ExtensionDescriptorValidator.validate(descriptor)
             service.logDiagnostics("Received notch experience payload from \(service.bundleIdentifier) (id: \(descriptor.id), priority: \(descriptor.priority.rawValue))")
-            try service.notchExperienceManager.present(descriptor: descriptor, bundleIdentifier: service.bundleIdentifier)
+            try service.notchExperienceManager.present(
+                descriptor: descriptor,
+                bundleIdentifier: service.bundleIdentifier,
+                isAuthenticatedSource: true
+            )
             service.logDiagnostics("Notch experience \(descriptor.id) stored for \(service.bundleIdentifier); active experiences: \(service.notchExperienceManager.activeExperiences.count)")
         }
     }
@@ -163,7 +167,11 @@ final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtoc
             let descriptor = try service.decoder.decode(AtollNotchExperienceDescriptor.self, from: descriptorData)
             try ExtensionDescriptorValidator.validate(descriptor)
             service.logDiagnostics("Received notch experience update from \(service.bundleIdentifier) (id: \(descriptor.id))")
-            try service.notchExperienceManager.update(descriptor: descriptor, bundleIdentifier: service.bundleIdentifier)
+            try service.notchExperienceManager.update(
+                descriptor: descriptor,
+                bundleIdentifier: service.bundleIdentifier,
+                isAuthenticatedSource: true
+            )
             service.logDiagnostics("Notch experience \(descriptor.id) updated for \(service.bundleIdentifier)")
         }
     }

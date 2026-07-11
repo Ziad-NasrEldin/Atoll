@@ -361,7 +361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         -> NSWindow
     {
         // Use the current required size instead of always using openNotchSize
-        let baseSize = calculateRequiredNotchSize()
+        let baseSize = calculateRequiredNotchSize(for: screen)
         let requiredSize = adjustedSizeForScreen(baseSize, screen: screen)
         let roundedWidth = requiredSize.width.rounded()
         let roundedHeight = requiredSize.height.rounded()
@@ -433,7 +433,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         resizeWindows(to: requiredSize, animated: false, force: true)
     }
     
-    private func calculateRequiredNotchSize() -> CGSize {
+    private func calculateRequiredNotchSize(for screen: NSScreen? = nil) -> CGSize {
         // Check if inline sneak peek is showing and notch is closed
         let airPodsListeningModeSneakActive = vm.notchState == .closed &&
                                       coordinator.sneakPeek.show &&
@@ -495,7 +495,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // Use minimalistic or normal size based on settings
-        var baseSize = Defaults[.enableMinimalisticUI] ? minimalisticOpenNotchSize(isDynamicIslandMode: shouldUseDynamicIslandMode(for: vm.screen)) : openNotchSize
+        let screenName = screen?.localizedName ?? vm.screen
+        var baseSize = Defaults[.enableMinimalisticUI]
+            ? minimalisticOpenNotchSize(isDynamicIslandMode: shouldUseDynamicIslandMode(for: screenName))
+            : openNotchSize
         
         // Use a consistent height for different view types
         if coordinator.currentView == .timer {
@@ -514,9 +517,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
            Defaults[.enableExtensionNotchExperiences],
            Defaults[.enableExtensionNotchTabs],
            let payload = currentExtensionTabPayloadForWindowSizing(),
-           ExtensionNotchSizing.supportsExpandedSurface(
-               bundleIdentifier: payload.bundleIdentifier
-           ) {
+           payload.allowsExpandedSurface == true {
             let metadata = payload.descriptor.metadata
             let requestedWidth = ExtensionNotchSizing.requestedDimension(
                 metadata: metadata,
@@ -531,8 +532,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     baseSize: baseSize,
                     requestedWidth: requestedWidth,
                     requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
-                    maximumWidth: maxAllowedNotchWidth(for: vm.screen),
-                    maximumHeight: maxAllowedNotchHeight(for: vm.screen)
+                    maximumWidth: maxAllowedNotchWidth(for: screenName),
+                    maximumHeight: maxAllowedNotchHeight(for: screenName)
                 )
             }
         }
@@ -580,7 +581,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if Defaults[.showOnAllDisplays] {
             for (screen, window) in windows {
-                let screenSize = adjustedSizeForScreen(size, screen: screen)
+                let requestedSize = adaptiveExtensionSize(for: screen) ?? size
+                let screenSize = adjustedSizeForScreen(requestedSize, screen: screen)
                 if force || window.frame.size != screenSize {
                     resizeWindow(window, on: screen, to: screenSize, animated: animated)
                 }
@@ -593,6 +595,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 resizeWindow(window, on: screen, to: screenSize, animated: animated)
             }
         }
+    }
+
+    private func adaptiveExtensionSize(for screen: NSScreen) -> CGSize? {
+        guard coordinator.currentView == .extensionExperience,
+              let payload = currentExtensionTabPayloadForWindowSizing(),
+              payload.allowsExpandedSurface == true else {
+            return nil
+        }
+        return calculateRequiredNotchSize(for: screen)
     }
 
     private func resizeWindow(_ window: NSWindow, on screen: NSScreen, to size: CGSize, animated: Bool) {

@@ -45,6 +45,7 @@ struct ExtensionNotchExperiencePayload: Identifiable, Hashable, Codable {
     let bundleIdentifier: String
     let descriptor: AtollNotchExperienceDescriptor
     let receivedAt: Date
+    let allowsExpandedSurface: Bool?
 
     var id: String { descriptor.id }
 

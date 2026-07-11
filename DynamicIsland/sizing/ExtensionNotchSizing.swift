@@ -6,8 +6,11 @@ enum ExtensionNotchSizing {
     static let preferredWidthMetadataKey = "preferredWidth"
     static let preferredHeightMetadataKey = "preferredHeight"
 
-    static func supportsExpandedSurface(bundleIdentifier: String) -> Bool {
-        bundleIdentifier == adaptiveBundleIdentifier
+    static func supportsExpandedSurface(
+        bundleIdentifier: String,
+        isAuthenticatedSource: Bool
+    ) -> Bool {
+        isAuthenticatedSource && bundleIdentifier == adaptiveBundleIdentifier
     }
 
     static func requestedDimension(
