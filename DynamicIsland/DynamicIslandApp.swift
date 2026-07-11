@@ -532,8 +532,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     baseSize: baseSize,
                     requestedWidth: requestedWidth,
                     requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
-                    maximumWidth: maxAllowedNotchWidth(for: screenName),
-                    maximumHeight: maxAllowedNotchHeight(for: screenName)
+                    maximumWidth: screen.map(maxAllowedNotchWidth(for:)) ?? maxAllowedNotchWidth(for: screenName),
+                    maximumHeight: screen.map(maxAllowedNotchHeight(for:)) ?? maxAllowedNotchHeight(for: screenName)
                 )
             }
         }
@@ -1447,7 +1447,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             for screen in currentScreens {
                 if windows[screen] == nil {
-                    let viewModel = DynamicIslandViewModel(screen: screen.localizedName)
+                    let viewModel = DynamicIslandViewModel(
+                        screen: screen.localizedName,
+                        display: screen
+                    )
                     let window = createDynamicIslandWindow(for: screen, with: viewModel)
                     
                     windows[screen] = window
@@ -1481,6 +1484,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             
             vm.screen = selectedScreen.localizedName
+            vm.display = selectedScreen
             vm.notchSize = getClosedNotchSize(screen: selectedScreen.localizedName)
             
             if window == nil {

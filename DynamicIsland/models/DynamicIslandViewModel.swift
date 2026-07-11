@@ -109,6 +109,7 @@ class DynamicIslandViewModel: NSObject, ObservableObject {
     @Published var isRequestingAuthorization: Bool = false
 
     @Published var screen: String?
+    @Published var display: NSScreen?
 
     @Published var notchSize: CGSize = getClosedNotchSize()
     @Published var closedNotchSize: CGSize = getClosedNotchSize()
@@ -125,12 +126,13 @@ class DynamicIslandViewModel: NSObject, ObservableObject {
         cancellables.removeAll()
     }
 
-    init(screen: String? = nil) {
+    init(screen: String? = nil, display: NSScreen? = nil) {
         animation = animationLibrary.animation
 
         super.init()
         
         self.screen = screen
+        self.display = display
         notchSize = getClosedNotchSize(screen: screen)
         closedNotchSize = notchSize
 

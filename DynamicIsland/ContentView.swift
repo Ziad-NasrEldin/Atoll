@@ -2225,8 +2225,8 @@ struct ContentView: View {
                     baseSize: baseSize,
                     requestedWidth: requestedWidth,
                     requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
-                    maximumWidth: maxAllowedNotchWidth(for: vm.screen),
-                    maximumHeight: maxAllowedNotchHeight(for: vm.screen)
+                    maximumWidth: vm.display.map(maxAllowedNotchWidth(for:)) ?? maxAllowedNotchWidth(for: vm.screen),
+                    maximumHeight: vm.display.map(maxAllowedNotchHeight(for:)) ?? maxAllowedNotchHeight(for: vm.screen)
                 )
             }
         }
