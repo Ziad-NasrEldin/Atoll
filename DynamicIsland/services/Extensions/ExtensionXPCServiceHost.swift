@@ -18,6 +18,7 @@
 
 import AppKit
 import Foundation
+import Security
 import AtollExtensionKit
 
 /// Shared constants for the Atoll extension XPC service.
@@ -73,7 +74,15 @@ final class ExtensionXPCServiceHost: NSObject, NSXPCListenerDelegate {
             return false
         }
 
-        let service = ExtensionXPCService(bundleIdentifier: bundleIdentifier, host: self, connection: connection)
+        let service = ExtensionXPCService(
+            bundleIdentifier: bundleIdentifier,
+            isAuthenticatedSource: ExtensionXPCClientIdentityValidator.isTrustedZoidCoach(
+                connection: connection,
+                bundleIdentifier: bundleIdentifier
+            ),
+            host: self,
+            connection: connection
+        )
         connection.exportedInterface = NSXPCInterface(with: AtollXPCServiceProtocol.self)
         connection.exportedObject = service
         connection.remoteObjectInterface = NSXPCInterface(with: AtollXPCClientProtocol.self)
@@ -158,5 +167,40 @@ final class ExtensionXPCServiceHost: NSObject, NSXPCListenerDelegate {
     private func removeConnection(_ connection: NSXPCConnection) {
         clientContexts.removeValue(forKey: ObjectIdentifier(connection))
         Logger.log("Removed XPC connection", category: .extensions)
+    }
+}
+
+private enum ExtensionXPCClientIdentityValidator {
+    private static let zoidCoachTeamIdentifier = "9Y64TRM77N"
+
+    static func isTrustedZoidCoach(
+        connection: NSXPCConnection,
+        bundleIdentifier: String
+    ) -> Bool {
+        guard bundleIdentifier == ExtensionNotchSizing.adaptiveBundleIdentifier else {
+            return false
+        }
+
+        var auditToken = connection.auditToken
+        let attributes = [
+            kSecGuestAttributeAudit: Data(
+                bytes: &auditToken,
+                count: MemoryLayout.size(ofValue: auditToken)
+            )
+        ] as CFDictionary
+        var code: SecCode?
+        guard SecCodeCopyGuestWithAttributes(nil, attributes, SecCSFlags(), &code) == errSecSuccess,
+              let code else {
+            return false
+        }
+
+        let requirement = "anchor apple generic and identifier \\"\(ExtensionNotchSizing.adaptiveBundleIdentifier)\\" and certificate leaf[subject.OU] = \\"\(zoidCoachTeamIdentifier)\\""
+        var signingRequirement: SecRequirement?
+        guard SecRequirementCreateWithString(requirement as CFString, SecCSFlags(), &signingRequirement) == errSecSuccess,
+              let signingRequirement else {
+            return false
+        }
+
+        return SecCodeCheckValidity(code, SecCSFlags(), signingRequirement) == errSecSuccess
     }
 }

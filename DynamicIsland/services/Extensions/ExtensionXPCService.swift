@@ -24,6 +24,7 @@ import AtollExtensionKit
 @MainActor
 final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtocol {
     private let bundleIdentifier: String
+    private let isAuthenticatedSource: Bool
     private weak var host: ExtensionXPCServiceHost?
     private weak var connection: NSXPCConnection?
 
@@ -33,8 +34,14 @@ final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtoc
     private let notchExperienceManager = ExtensionNotchExperienceManager.shared
     private let decoder = JSONDecoder()
 
-    init(bundleIdentifier: String, host: ExtensionXPCServiceHost, connection: NSXPCConnection) {
+    init(
+        bundleIdentifier: String,
+        isAuthenticatedSource: Bool,
+        host: ExtensionXPCServiceHost,
+        connection: NSXPCConnection
+    ) {
         self.bundleIdentifier = bundleIdentifier
+        self.isAuthenticatedSource = isAuthenticatedSource
         self.host = host
         self.connection = connection
         super.init()
@@ -156,7 +163,7 @@ final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtoc
             try service.notchExperienceManager.present(
                 descriptor: descriptor,
                 bundleIdentifier: service.bundleIdentifier,
-                isAuthenticatedSource: true
+                isAuthenticatedSource: service.isAuthenticatedSource
             )
             service.logDiagnostics("Notch experience \(descriptor.id) stored for \(service.bundleIdentifier); active experiences: \(service.notchExperienceManager.activeExperiences.count)")
         }
@@ -170,7 +177,7 @@ final class ExtensionXPCService: NSObject, @preconcurrency AtollXPCServiceProtoc
             try service.notchExperienceManager.update(
                 descriptor: descriptor,
                 bundleIdentifier: service.bundleIdentifier,
-                isAuthenticatedSource: true
+                isAuthenticatedSource: service.isAuthenticatedSource
             )
             service.logDiagnostics("Notch experience \(descriptor.id) updated for \(service.bundleIdentifier)")
         }
