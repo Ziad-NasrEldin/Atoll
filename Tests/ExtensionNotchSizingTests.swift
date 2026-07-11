@@ -48,6 +48,27 @@ struct ExtensionNotchSizingTests {
                 maximumHeight: 150
             ) == base
         )
+        precondition(
+            ExtensionNotchSizing.resolvedLegacyTabHeight(
+                baseHeight: base.height,
+                preferredHeight: 100,
+                maximumAdditionalHeight: 150
+            ) == base.height
+        )
+        precondition(
+            ExtensionNotchSizing.resolvedLegacyTabHeight(
+                baseHeight: base.height,
+                preferredHeight: 275,
+                maximumAdditionalHeight: 150
+            ) == 275
+        )
+        precondition(
+            ExtensionNotchSizing.resolvedLegacyTabHeight(
+                baseHeight: base.height,
+                preferredHeight: 500,
+                maximumAdditionalHeight: 150
+            ) == 350
+        )
 
         print("ExtensionNotchSizingTests passed")
     }

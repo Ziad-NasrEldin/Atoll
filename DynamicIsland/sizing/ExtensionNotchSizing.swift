@@ -36,4 +36,15 @@ enum ExtensionNotchSizing {
         let height = min(max(requestedHeight ?? baseSize.height, baseSize.height), safeMaximumHeight)
         return CGSize(width: width, height: height)
     }
+
+    static func resolvedLegacyTabHeight(
+        baseHeight: CGFloat,
+        preferredHeight: CGFloat,
+        maximumAdditionalHeight: CGFloat
+    ) -> CGFloat {
+        min(
+            max(preferredHeight, baseHeight),
+            baseHeight + maximumAdditionalHeight
+        )
+    }
 }

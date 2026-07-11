@@ -2209,38 +2209,42 @@ struct ContentView: View {
             return nil
         }
 
-        guard ExtensionNotchSizing.supportsExpandedSurface(
+        if ExtensionNotchSizing.supportsExpandedSurface(
             bundleIdentifier: payload.bundleIdentifier
-        ) else {
-            return nil
-        }
-        let metadata = payload.descriptor.metadata
-        let requestedWidth = ExtensionNotchSizing.requestedDimension(
-            metadata: metadata,
-            key: ExtensionNotchSizing.preferredWidthMetadataKey
-        )
-        let requestedHeight = ExtensionNotchSizing.requestedDimension(
-            metadata: metadata,
-            key: ExtensionNotchSizing.preferredHeightMetadataKey
-        )
-
-        if requestedWidth != nil || requestedHeight != nil {
-            return ExtensionNotchSizing.resolvedSize(
-                baseSize: baseSize,
-                requestedWidth: requestedWidth,
-                requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
-                maximumWidth: maxAllowedNotchWidth(for: vm.screen),
-                maximumHeight: maxAllowedNotchHeight(for: vm.screen)
+        ) {
+            let metadata = payload.descriptor.metadata
+            let requestedWidth = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredWidthMetadataKey
             )
+            let requestedHeight = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredHeightMetadataKey
+            )
+
+            if requestedWidth != nil || requestedHeight != nil {
+                return ExtensionNotchSizing.resolvedSize(
+                    baseSize: baseSize,
+                    requestedWidth: requestedWidth,
+                    requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
+                    maximumWidth: maxAllowedNotchWidth(for: vm.screen),
+                    maximumHeight: maxAllowedNotchHeight(for: vm.screen)
+                )
+            }
         }
 
         guard let preferred = payload.descriptor.tab?.preferredHeight else {
             return nil
         }
 
-        let minHeight = baseSize.height
-        let maxHeight = baseSize.height + statsAdditionalRowHeight
-        return CGSize(width: baseSize.width, height: min(max(preferred, minHeight), maxHeight))
+        return CGSize(
+            width: baseSize.width,
+            height: ExtensionNotchSizing.resolvedLegacyTabHeight(
+                baseHeight: baseSize.height,
+                preferredHeight: preferred,
+                maximumAdditionalHeight: statsAdditionalRowHeight
+            )
+        )
     }
 
     private func extensionTabContentSize(for payload: ExtensionNotchExperiencePayload) -> CGSize? {
