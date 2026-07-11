@@ -122,6 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let systemTimerBridge = SystemTimerBridge.shared
     let extensionXPCServiceHost = ExtensionXPCServiceHost.shared
     let extensionRPCServer = ExtensionRPCServer.shared
+    let extensionNotchExperienceManager = ExtensionNotchExperienceManager.shared
     var closeNotchWorkItem: DispatchWorkItem?
     private var previousScreens: [NSScreen]?
     private var onboardingWindowController: NSWindowController?
@@ -507,6 +508,34 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let maxFraction = Defaults[.terminalMaxHeightFraction]
             baseSize.height = min(screenHeight * maxFraction, max(300, screenHeight * maxFraction))
         }
+
+        if coordinator.currentView == .extensionExperience,
+           Defaults[.enableThirdPartyExtensions],
+           Defaults[.enableExtensionNotchExperiences],
+           Defaults[.enableExtensionNotchTabs],
+           let payload = currentExtensionTabPayloadForWindowSizing(),
+           ExtensionNotchSizing.supportsExpandedSurface(
+               bundleIdentifier: payload.bundleIdentifier
+           ) {
+            let metadata = payload.descriptor.metadata
+            let requestedWidth = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredWidthMetadataKey
+            )
+            let requestedHeight = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredHeightMetadataKey
+            )
+            if requestedWidth != nil || requestedHeight != nil {
+                baseSize = ExtensionNotchSizing.resolvedSize(
+                    baseSize: baseSize,
+                    requestedWidth: requestedWidth,
+                    requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
+                    maximumWidth: maxAllowedNotchWidth(for: vm.screen),
+                    maximumHeight: maxAllowedNotchHeight(for: vm.screen)
+                )
+            }
+        }
         
         let adjustedContentSize = statsAdjustedNotchSize(
             from: baseSize,
@@ -519,6 +548,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         return result
+    }
+
+    private func currentExtensionTabPayloadForWindowSizing() -> ExtensionNotchExperiencePayload? {
+        if let selectedID = coordinator.selectedExtensionExperienceID,
+           let payload = extensionNotchExperienceManager.payload(experienceID: selectedID) {
+            return payload
+        }
+        return extensionNotchExperienceManager.highestPriorityTabPayload()
     }
 
     /// Adjusts a base notch size for a specific screen by adding Dynamic Island
@@ -679,6 +716,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateWindowSizeForTabSwitch()
             }
         }.store(in: &cancellables)
+
+        coordinator.$selectedExtensionExperienceID
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateWindowSizeForTabSwitch()
+                }
+            }
+            .store(in: &cancellables)
+
+        extensionNotchExperienceManager.$activeExperiences
+            .sink { [weak self] _ in
+                guard self?.coordinator.currentView == .extensionExperience else { return }
+                DispatchQueue.main.async {
+                    self?.updateWindowSizeForTabSwitch()
+                }
+            }
+            .store(in: &cancellables)
 
         coordinator.$notesLayoutState
             .removeDuplicates()

@@ -230,8 +230,10 @@ struct ExtensionNotchExperienceTabView: View {
             }
         }
         .frame(
-            width: resolvedContentSize?.width,
-            height: resolvedContentSize?.height,
+            minWidth: resolvedContentSize?.width,
+            maxWidth: resolvedContentSize?.width ?? .infinity,
+            minHeight: resolvedContentSize?.height,
+            maxHeight: resolvedContentSize?.height ?? .infinity,
             alignment: .top
         )
         .background(tabBackground)

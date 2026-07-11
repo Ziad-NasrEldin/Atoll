@@ -40,6 +40,8 @@ Do not run the official Atoll app and this custom host simultaneously because bo
 
 Run `scripts/build-zoid-atoll.command` to create the local custom host at `.build/ZoidAtollProduct/Zoid Atoll.app`.
 
+The packaging command runs `scripts/test-extension-notch-sizing.command` before compiling the app.
+
 The custom host uses bundle identifier `com.ziadnasreldin.ZoidAtoll` and an ad-hoc local signature.
 
 The packaging script removes the upstream Sparkle feed and marks the bundle with `ZoidCustomHost=true`, which prevents the upstream updater from starting or appearing in the menu.

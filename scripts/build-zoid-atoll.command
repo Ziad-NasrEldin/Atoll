@@ -9,6 +9,8 @@ PRODUCT_DIRECTORY="$ROOT/.build/ZoidAtollProduct"
 PRODUCT="$PRODUCT_DIRECTORY/Zoid Atoll.app"
 INFO_PLIST="$PRODUCT/Contents/Info.plist"
 
+"$ROOT/scripts/test-extension-notch-sizing.command"
+
 xcodebuild \
   -project "$ROOT/DynamicIsland.xcodeproj" \
   -scheme DynamicIsland \
