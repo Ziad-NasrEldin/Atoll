@@ -18,7 +18,10 @@ The host clamps width to the active display's safe notch width and height to its
 It never makes a surface smaller than the ordinary notch size.
 
 The current Zoid Coach command center requests `1400 x 650`.
-The host falls back to standard extension sizing when neither key is present or the descriptor did not arrive over an authenticated XPC connection.
+The host honors these keys only for a live XPC delivery from the signed `com.ziadnasreldin.ZoidCoach` application.
+The host checks that application's bundle identifier and signing team before granting expanded-surface permission.
+Decoded or persisted payloads never retain that permission, so they always use standard extension sizing even if they contain these metadata keys.
+The host also uses standard extension sizing when neither key is present.
 
 ## Source ownership
 
