@@ -181,12 +181,8 @@ private enum ExtensionXPCClientIdentityValidator {
             return false
         }
 
-        var auditToken = connection.auditToken
         let attributes = [
-            kSecGuestAttributeAudit: Data(
-                bytes: &auditToken,
-                count: MemoryLayout.size(ofValue: auditToken)
-            )
+            kSecGuestAttributePid: NSNumber(value: connection.processIdentifier)
         ] as CFDictionary
         var code: SecCode?
         guard SecCodeCopyGuestWithAttributes(nil, attributes, SecCSFlags(), &code) == errSecSuccess,
@@ -194,7 +190,7 @@ private enum ExtensionXPCClientIdentityValidator {
             return false
         }
 
-        let requirement = "anchor apple generic and identifier \\"\(ExtensionNotchSizing.adaptiveBundleIdentifier)\\" and certificate leaf[subject.OU] = \\"\(zoidCoachTeamIdentifier)\\""
+        let requirement = "anchor apple generic and identifier \"\(ExtensionNotchSizing.adaptiveBundleIdentifier)\" and certificate leaf[subject.OU] = \"\(zoidCoachTeamIdentifier)\""
         var signingRequirement: SecRequirement?
         guard SecRequirementCreateWithString(requirement as CFString, SecCSFlags(), &signingRequirement) == errSecSuccess,
               let signingRequirement else {
