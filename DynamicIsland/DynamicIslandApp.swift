@@ -32,11 +32,17 @@ struct DynamicNotchApp: App {
 
     let updaterController: SPUStandardUpdaterController
 
+    private static var isZoidCustomHost: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "ZoidCustomHost") as? Bool == true
+    }
+
     init() {
         // Skip Sparkle's launch-time update check during UI testing.
         updaterController = SPUStandardUpdaterController(
-            startingUpdater: !AppRuntimeEnvironment.isUITesting,
-            updaterDelegate: nil, userDriverDelegate: nil)
+            startingUpdater: !AppRuntimeEnvironment.isUITesting && !Self.isZoidCustomHost,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
 
         // Initialize the settings window controller with the updater controller
         SettingsWindowController.shared.setUpdaterController(updaterController)
@@ -47,9 +53,11 @@ struct DynamicNotchApp: App {
             Button("Settings") {
                 SettingsWindowController.shared.showWindow()
             }
-            CheckForUpdatesView(updater: updaterController.updater)
+            if !Self.isZoidCustomHost {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
             Divider()
-            Button("Restart Atoll") {
+            Button(Self.isZoidCustomHost ? "Restart Zoid Atoll" : "Restart Atoll") {
                 guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
 
                 let workspace = NSWorkspace.shared

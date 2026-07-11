@@ -35,3 +35,17 @@ The host falls back to standard extension sizing when neither key is present.
 Start feature work from the `codex/zoid-integration` branch, which is pinned to upstream Atoll `v2.2.0`.
 Keep `main` available for upstream sync.
 Do not run the official Atoll app and this custom host simultaneously because both use the local extension RPC port.
+
+## Local custom-host packaging
+
+Run `scripts/build-zoid-atoll.command` to create the local custom host at `.build/ZoidAtollProduct/Zoid Atoll.app`.
+
+The custom host uses bundle identifier `com.ziadnasreldin.ZoidAtoll` and an ad-hoc local signature.
+
+The packaging script removes the upstream Sparkle feed and marks the bundle with `ZoidCustomHost=true`, which prevents the upstream updater from starting or appearing in the menu.
+
+Install the product as `/Applications/Zoid Atoll.app` and leave `/Applications/Atoll.app` untouched.
+
+Quit official Atoll before launching Zoid Atoll because both hosts listen on extension RPC port `9020`.
+
+The verified open, interaction, stock-tab, closed, relaunch, and final-installed states are captured under `artifacts/zoid-integration/`.

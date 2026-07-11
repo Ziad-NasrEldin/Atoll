@@ -182,7 +182,7 @@ private func logExtensionDiagnostics(_ message: String) {
 
 struct ExtensionNotchExperienceTabView: View {
     let payload: ExtensionNotchExperiencePayload
-    let resolvedSurfaceHeight: CGFloat
+    let resolvedContentSize: CGSize?
 
     @Default(.enableExtensionNotchInteractiveWebViews) private var interactiveWebViewsEnabled
 
@@ -229,7 +229,11 @@ struct ExtensionNotchExperienceTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(
+            width: resolvedContentSize?.width,
+            height: resolvedContentSize?.height,
+            alignment: .top
+        )
         .background(tabBackground)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
@@ -265,17 +269,18 @@ struct ExtensionNotchExperienceTabView: View {
     }
 
     private func resolvedWebContentHeight(for descriptor: AtollWidgetWebContentDescriptor) -> CGFloat {
-        guard ExtensionNotchSizing.requestedDimension(
-            metadata: self.descriptor.metadata,
-            key: ExtensionNotchSizing.preferredHeightMetadataKey
-        ) != nil else {
+        guard let resolvedContentSize,
+              ExtensionNotchSizing.requestedDimension(
+                  metadata: self.descriptor.metadata,
+                  key: ExtensionNotchSizing.preferredHeightMetadataKey
+              ) != nil else {
             return descriptor.preferredHeight
         }
 
-        // The resolved host height includes the tab header and vertical padding.
-        // Keep the web region inside that resolved surface even when metadata is oversized.
+        // The resolved content height already excludes host navigation and shell padding.
+        // Keep the web region inside it even when metadata is oversized.
         let chromeHeight: CGFloat = 78
-        return max(0, resolvedSurfaceHeight - chromeHeight)
+        return max(0, resolvedContentSize.height - chromeHeight)
     }
 
     private var tabBackground: some View {

@@ -1104,7 +1104,7 @@ struct ContentView: View {
                                 if let payload = currentExtensionTabPayload() {
                                     ExtensionNotchExperienceTabView(
                                         payload: payload,
-                                        resolvedSurfaceHeight: dynamicNotchSize.height
+                                        resolvedContentSize: extensionTabContentSize(for: payload)
                                     )
                                 } else {
                                     NotchHomeView(albumArtNamespace: albumArtNamespace)
@@ -2236,6 +2236,26 @@ struct ContentView: View {
         let minHeight = baseSize.height
         let maxHeight = baseSize.height + statsAdditionalRowHeight
         return CGSize(width: baseSize.width, height: min(max(preferred, minHeight), maxHeight))
+    }
+
+    private func extensionTabContentSize(for payload: ExtensionNotchExperiencePayload) -> CGSize? {
+        let metadata = payload.descriptor.metadata
+        let requestsExpandedSurface = ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredWidthMetadataKey
+        ) != nil || ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredHeightMetadataKey
+        ) != nil
+        guard requestsExpandedSurface else { return nil }
+
+        let shellPadding: CGFloat = 12
+        let headerHeight = max(24, vm.effectiveClosedNotchHeight)
+        let stackSpacing: CGFloat = 8
+        return CGSize(
+            width: max(0, dynamicNotchSize.width - (2 * (notchHorizontalPadding + shellPadding))),
+            height: max(0, dynamicNotchSize.height - headerHeight - stackSpacing - shellPadding)
+        )
     }
 
     // Estimate the height required for minimalistic overrides (notably web content) and clamp it to the notch bounds.
