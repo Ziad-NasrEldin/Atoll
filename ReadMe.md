@@ -1,5 +1,7 @@
 # Atoll - Dynamic Island for macOS
 
+<p align="center"><img src="docs/hero.png" alt="Atoll" width="900"></p>
+
 This is Ziad's fork of [Ebullioscopic/Atoll](https://github.com/Ebullioscopic/Atoll).
 
 Atoll turns the MacBook notch into a focused command surface for media, system insight, and quick utilities. It stays out of the way until needed, then expands with responsive, native SwiftUI animations.
