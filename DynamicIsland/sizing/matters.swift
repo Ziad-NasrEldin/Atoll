@@ -50,9 +50,31 @@ func maxAllowedNotchWidth(for screenName: String? = nil) -> CGFloat {
     return max(screenWidth - 60, 400)
 }
 
+func maxAllowedNotchWidth(for screen: NSScreen) -> CGFloat {
+    guard screen.frame.width > 0 else {
+        return 900
+    }
+    return max(screen.frame.width - 60, 400)
+}
+
 /// Convenience for the main screen.
 func maxAllowedNotchWidth() -> CGFloat {
     maxAllowedNotchWidth(for: nil)
+}
+
+func maxAllowedNotchHeight(for screenName: String? = nil) -> CGFloat {
+    let screen: NSScreen?
+    if let screenName {
+        screen = NSScreen.screens.first { $0.localizedName == screenName }
+    } else {
+        screen = NSScreen.main
+    }
+    let visibleHeight = screen?.visibleFrame.height ?? 800
+    return max(visibleHeight - 60, 200)
+}
+
+func maxAllowedNotchHeight(for screen: NSScreen) -> CGFloat {
+    max(screen.visibleFrame.height - 60, 200)
 }
 
 // MARK: - Tab-Based Notch Width

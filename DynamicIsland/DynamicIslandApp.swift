@@ -32,11 +32,17 @@ struct DynamicNotchApp: App {
 
     let updaterController: SPUStandardUpdaterController
 
+    private static var isZoidCustomHost: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "ZoidCustomHost") as? Bool == true
+    }
+
     init() {
         // Skip Sparkle's launch-time update check during UI testing.
         updaterController = SPUStandardUpdaterController(
-            startingUpdater: !AppRuntimeEnvironment.isUITesting,
-            updaterDelegate: nil, userDriverDelegate: nil)
+            startingUpdater: !AppRuntimeEnvironment.isUITesting && !Self.isZoidCustomHost,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
 
         // Initialize the settings window controller with the updater controller
         SettingsWindowController.shared.setUpdaterController(updaterController)
@@ -47,9 +53,11 @@ struct DynamicNotchApp: App {
             Button("Settings") {
                 SettingsWindowController.shared.showWindow()
             }
-            CheckForUpdatesView(updater: updaterController.updater)
+            if !Self.isZoidCustomHost {
+                CheckForUpdatesView(updater: updaterController.updater)
+            }
             Divider()
-            Button("Restart Atoll") {
+            Button(Self.isZoidCustomHost ? "Restart Zoid Atoll" : "Restart Atoll") {
                 guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
 
                 let workspace = NSWorkspace.shared
@@ -114,6 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let systemTimerBridge = SystemTimerBridge.shared
     let extensionXPCServiceHost = ExtensionXPCServiceHost.shared
     let extensionRPCServer = ExtensionRPCServer.shared
+    let extensionNotchExperienceManager = ExtensionNotchExperienceManager.shared
     var closeNotchWorkItem: DispatchWorkItem?
     private var previousScreens: [NSScreen]?
     private var onboardingWindowController: NSWindowController?
@@ -352,7 +361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         -> NSWindow
     {
         // Use the current required size instead of always using openNotchSize
-        let baseSize = calculateRequiredNotchSize()
+        let baseSize = calculateRequiredNotchSize(for: screen)
         let requiredSize = adjustedSizeForScreen(baseSize, screen: screen)
         let roundedWidth = requiredSize.width.rounded()
         let roundedHeight = requiredSize.height.rounded()
@@ -424,7 +433,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         resizeWindows(to: requiredSize, animated: false, force: true)
     }
     
-    private func calculateRequiredNotchSize() -> CGSize {
+    private func calculateRequiredNotchSize(for screen: NSScreen? = nil) -> CGSize {
         // Check if inline sneak peek is showing and notch is closed
         let airPodsListeningModeSneakActive = vm.notchState == .closed &&
                                       coordinator.sneakPeek.show &&
@@ -486,7 +495,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         // Use minimalistic or normal size based on settings
-        var baseSize = Defaults[.enableMinimalisticUI] ? minimalisticOpenNotchSize(isDynamicIslandMode: shouldUseDynamicIslandMode(for: vm.screen)) : openNotchSize
+        let screenName = screen?.localizedName ?? vm.screen
+        var baseSize = Defaults[.enableMinimalisticUI]
+            ? minimalisticOpenNotchSize(isDynamicIslandMode: shouldUseDynamicIslandMode(for: screenName))
+            : openNotchSize
         
         // Use a consistent height for different view types
         if coordinator.currentView == .timer {
@@ -498,6 +510,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let screenHeight = NSScreen.main?.visibleFrame.height ?? 800
             let maxFraction = Defaults[.terminalMaxHeightFraction]
             baseSize.height = min(screenHeight * maxFraction, max(300, screenHeight * maxFraction))
+        }
+
+        if coordinator.currentView == .extensionExperience,
+           Defaults[.enableThirdPartyExtensions],
+           Defaults[.enableExtensionNotchExperiences],
+           Defaults[.enableExtensionNotchTabs],
+           let payload = currentExtensionTabPayloadForWindowSizing(),
+           payload.allowsExpandedSurface == true {
+            let metadata = payload.descriptor.metadata
+            let requestedWidth = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredWidthMetadataKey
+            )
+            let requestedHeight = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredHeightMetadataKey
+            )
+            if requestedWidth != nil || requestedHeight != nil {
+                baseSize = ExtensionNotchSizing.resolvedSize(
+                    baseSize: baseSize,
+                    requestedWidth: requestedWidth,
+                    requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
+                    maximumWidth: screen.map(maxAllowedNotchWidth(for:)) ?? maxAllowedNotchWidth(for: screenName),
+                    maximumHeight: screen.map(maxAllowedNotchHeight(for:)) ?? maxAllowedNotchHeight(for: screenName)
+                )
+            }
         }
         
         let adjustedContentSize = statsAdjustedNotchSize(
@@ -511,6 +549,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         return result
+    }
+
+    private func currentExtensionTabPayloadForWindowSizing() -> ExtensionNotchExperiencePayload? {
+        if let selectedID = coordinator.selectedExtensionExperienceID,
+           let payload = extensionNotchExperienceManager.payload(experienceID: selectedID) {
+            return payload
+        }
+        return extensionNotchExperienceManager.highestPriorityTabPayload()
     }
 
     /// Adjusts a base notch size for a specific screen by adding Dynamic Island
@@ -535,7 +581,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if Defaults[.showOnAllDisplays] {
             for (screen, window) in windows {
-                let screenSize = adjustedSizeForScreen(size, screen: screen)
+                let requestedSize = adaptiveExtensionSize(for: screen) ?? size
+                let screenSize = adjustedSizeForScreen(requestedSize, screen: screen)
                 if force || window.frame.size != screenSize {
                     resizeWindow(window, on: screen, to: screenSize, animated: animated)
                 }
@@ -548,6 +595,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 resizeWindow(window, on: screen, to: screenSize, animated: animated)
             }
         }
+    }
+
+    private func adaptiveExtensionSize(for screen: NSScreen) -> CGSize? {
+        guard coordinator.currentView == .extensionExperience,
+              let payload = currentExtensionTabPayloadForWindowSizing(),
+              payload.allowsExpandedSurface == true else {
+            return nil
+        }
+        return calculateRequiredNotchSize(for: screen)
     }
 
     private func resizeWindow(_ window: NSWindow, on screen: NSScreen, to size: CGSize, animated: Bool) {
@@ -671,6 +727,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateWindowSizeForTabSwitch()
             }
         }.store(in: &cancellables)
+
+        coordinator.$selectedExtensionExperienceID
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                DispatchQueue.main.async {
+                    self?.updateWindowSizeForTabSwitch()
+                }
+            }
+            .store(in: &cancellables)
+
+        extensionNotchExperienceManager.$activeExperiences
+            .sink { [weak self] _ in
+                guard self?.coordinator.currentView == .extensionExperience else { return }
+                DispatchQueue.main.async {
+                    self?.updateWindowSizeForTabSwitch()
+                }
+            }
+            .store(in: &cancellables)
 
         coordinator.$notesLayoutState
             .removeDuplicates()
@@ -1373,7 +1447,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             
             for screen in currentScreens {
                 if windows[screen] == nil {
-                    let viewModel = DynamicIslandViewModel(screen: screen.localizedName)
+                    let viewModel = DynamicIslandViewModel(
+                        screen: screen.localizedName,
+                        display: screen
+                    )
                     let window = createDynamicIslandWindow(for: screen, with: viewModel)
                     
                     windows[screen] = window
@@ -1407,6 +1484,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             
             vm.screen = selectedScreen.localizedName
+            vm.display = selectedScreen
             vm.notchSize = getClosedNotchSize(screen: selectedScreen.localizedName)
             
             if window == nil {

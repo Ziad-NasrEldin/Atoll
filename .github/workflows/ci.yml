@@ -52,7 +52,6 @@ jobs:
         # UI automation of the notch/accessory app is not driveable on headless
         # GitHub-hosted runners, so CI compiles the app instead of running XCUITest.
         run: |
-          sudo DevToolsSecurity -enable
 
           # Strip mach-services entitlement (amfid kills ad-hoc app); ignore only "key absent".
           if ! plutil_out=$(plutil -remove com.apple.security.mach-services DynamicIsland/DynamicIsland.entitlements 2>&1); then

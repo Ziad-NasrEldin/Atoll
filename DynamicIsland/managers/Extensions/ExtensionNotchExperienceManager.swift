@@ -50,7 +50,11 @@ final class ExtensionNotchExperienceManager: ObservableObject {
 
     // MARK: - Presentation Lifecycle
 
-    func present(descriptor: AtollNotchExperienceDescriptor, bundleIdentifier: String) throws {
+    func present(
+        descriptor: AtollNotchExperienceDescriptor,
+        bundleIdentifier: String,
+        isAuthenticatedSource: Bool = false
+    ) throws {
         guard authorizationManager.canProcessNotchExperienceRequest(from: bundleIdentifier) else {
             logDiagnostics("Rejected notch experience \(descriptor.id) from \(bundleIdentifier): scope disabled or bundle unauthorized")
             throw ExtensionValidationError.unauthorized
@@ -68,7 +72,11 @@ final class ExtensionNotchExperienceManager: ObservableObject {
             let payload = ExtensionNotchExperiencePayload(
                 bundleIdentifier: bundleIdentifier,
                 descriptor: descriptor,
-                receivedAt: activeExperiences[index].receivedAt
+                receivedAt: activeExperiences[index].receivedAt,
+                allowsExpandedSurface: ExtensionNotchSizing.supportsExpandedSurface(
+                    bundleIdentifier: bundleIdentifier,
+                    isAuthenticatedSource: isAuthenticatedSource
+                )
             )
             activeExperiences[index] = payload
             sortExperiences()
@@ -83,7 +91,11 @@ final class ExtensionNotchExperienceManager: ObservableObject {
             let payload = ExtensionNotchExperiencePayload(
                 bundleIdentifier: bundleIdentifier,
                 descriptor: descriptor,
-                receivedAt: .now
+                receivedAt: .now,
+                allowsExpandedSurface: ExtensionNotchSizing.supportsExpandedSurface(
+                    bundleIdentifier: bundleIdentifier,
+                    isAuthenticatedSource: isAuthenticatedSource
+                )
             )
             activeExperiences.append(payload)
             sortExperiences()
@@ -107,7 +119,11 @@ final class ExtensionNotchExperienceManager: ObservableObject {
         }
     }
 
-    func update(descriptor: AtollNotchExperienceDescriptor, bundleIdentifier: String) throws {
+    func update(
+        descriptor: AtollNotchExperienceDescriptor,
+        bundleIdentifier: String,
+        isAuthenticatedSource: Bool = false
+    ) throws {
         try ExtensionDescriptorValidator.validate(descriptor)
         guard descriptor.bundleIdentifier == bundleIdentifier else {
             logDiagnostics("Rejected notch experience update \(descriptor.id) from \(bundleIdentifier): bundle mismatch (descriptor: \(descriptor.bundleIdentifier))")
@@ -120,7 +136,11 @@ final class ExtensionNotchExperienceManager: ObservableObject {
         let payload = ExtensionNotchExperiencePayload(
             bundleIdentifier: bundleIdentifier,
             descriptor: descriptor,
-            receivedAt: activeExperiences[index].receivedAt
+            receivedAt: activeExperiences[index].receivedAt,
+            allowsExpandedSurface: ExtensionNotchSizing.supportsExpandedSurface(
+                bundleIdentifier: bundleIdentifier,
+                isAuthenticatedSource: isAuthenticatedSource
+            )
         )
         activeExperiences[index] = payload
         sortExperiences()

@@ -45,6 +45,40 @@ struct ExtensionNotchExperiencePayload: Identifiable, Hashable, Codable {
     let bundleIdentifier: String
     let descriptor: AtollNotchExperienceDescriptor
     let receivedAt: Date
+    let allowsExpandedSurface: Bool
+
+    init(
+        bundleIdentifier: String,
+        descriptor: AtollNotchExperienceDescriptor,
+        receivedAt: Date,
+        allowsExpandedSurface: Bool
+    ) {
+        self.bundleIdentifier = bundleIdentifier
+        self.descriptor = descriptor
+        self.receivedAt = receivedAt
+        self.allowsExpandedSurface = allowsExpandedSurface
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case bundleIdentifier
+        case descriptor
+        case receivedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        bundleIdentifier = try container.decode(String.self, forKey: .bundleIdentifier)
+        descriptor = try container.decode(AtollNotchExperienceDescriptor.self, forKey: .descriptor)
+        receivedAt = try container.decode(Date.self, forKey: .receivedAt)
+        allowsExpandedSurface = false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(bundleIdentifier, forKey: .bundleIdentifier)
+        try container.encode(descriptor, forKey: .descriptor)
+        try container.encode(receivedAt, forKey: .receivedAt)
+    }
 
     var id: String { descriptor.id }
 

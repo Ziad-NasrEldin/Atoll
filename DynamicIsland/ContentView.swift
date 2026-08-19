@@ -176,8 +176,8 @@ struct ContentView: View {
         }
 
         if coordinator.currentView == .extensionExperience {
-            if let preferredHeight = extensionTabPreferredHeight(baseSize: baseSize) {
-                return CGSize(width: baseSize.width, height: preferredHeight)
+            if let preferredSize = extensionTabPreferredSize(baseSize: baseSize) {
+                return preferredSize
             }
             return baseSize
         }
@@ -1102,7 +1102,10 @@ struct ContentView: View {
                                 NotchTerminalView()
                             case .extensionExperience:
                                 if let payload = currentExtensionTabPayload() {
-                                    ExtensionNotchExperienceTabView(payload: payload)
+                                    ExtensionNotchExperienceTabView(
+                                        payload: payload,
+                                        resolvedContentSize: extensionTabContentSize(for: payload)
+                                    )
                                 } else {
                                     NotchHomeView(albumArtNamespace: albumArtNamespace)
                                 }
@@ -2201,13 +2204,68 @@ struct ContentView: View {
         return extensionNotchExperienceManager.highestPriorityTabPayload()
     }
 
-    private func extensionTabPreferredHeight(baseSize: CGSize) -> CGFloat? {
-        guard let preferred = currentExtensionTabPayload()?.descriptor.tab?.preferredHeight else {
+    private func extensionTabPreferredSize(baseSize: CGSize) -> CGSize? {
+        guard let payload = currentExtensionTabPayload() else {
             return nil
         }
-        let minHeight = baseSize.height
-        let maxHeight = baseSize.height + statsAdditionalRowHeight
-        return min(max(preferred, minHeight), maxHeight)
+
+        if payload.allowsExpandedSurface == true {
+            let metadata = payload.descriptor.metadata
+            let requestedWidth = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredWidthMetadataKey
+            )
+            let requestedHeight = ExtensionNotchSizing.requestedDimension(
+                metadata: metadata,
+                key: ExtensionNotchSizing.preferredHeightMetadataKey
+            )
+
+            if requestedWidth != nil || requestedHeight != nil {
+                return ExtensionNotchSizing.resolvedSize(
+                    baseSize: baseSize,
+                    requestedWidth: requestedWidth,
+                    requestedHeight: requestedHeight ?? payload.descriptor.tab?.preferredHeight,
+                    maximumWidth: vm.display.map(maxAllowedNotchWidth(for:)) ?? maxAllowedNotchWidth(for: vm.screen),
+                    maximumHeight: vm.display.map(maxAllowedNotchHeight(for:)) ?? maxAllowedNotchHeight(for: vm.screen)
+                )
+            }
+        }
+
+        guard let preferred = payload.descriptor.tab?.preferredHeight else {
+            return nil
+        }
+
+        return CGSize(
+            width: baseSize.width,
+            height: ExtensionNotchSizing.resolvedLegacyTabHeight(
+                baseHeight: baseSize.height,
+                preferredHeight: preferred,
+                maximumAdditionalHeight: statsAdditionalRowHeight
+            )
+        )
+    }
+
+    private func extensionTabContentSize(for payload: ExtensionNotchExperiencePayload) -> CGSize? {
+        guard payload.allowsExpandedSurface == true else {
+            return nil
+        }
+        let metadata = payload.descriptor.metadata
+        let requestsExpandedSurface = ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredWidthMetadataKey
+        ) != nil || ExtensionNotchSizing.requestedDimension(
+            metadata: metadata,
+            key: ExtensionNotchSizing.preferredHeightMetadataKey
+        ) != nil
+        guard requestsExpandedSurface else { return nil }
+
+        let shellPadding: CGFloat = 12
+        let headerHeight = max(24, vm.effectiveClosedNotchHeight)
+        let stackSpacing: CGFloat = 8
+        return CGSize(
+            width: max(0, dynamicNotchSize.width - (2 * (notchHorizontalPadding + shellPadding))),
+            height: max(0, dynamicNotchSize.height - headerHeight - stackSpacing - shellPadding)
+        )
     }
 
     // Estimate the height required for minimalistic overrides (notably web content) and clamp it to the notch bounds.

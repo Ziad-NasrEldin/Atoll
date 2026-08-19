@@ -182,6 +182,7 @@ private func logExtensionDiagnostics(_ message: String) {
 
 struct ExtensionNotchExperienceTabView: View {
     let payload: ExtensionNotchExperiencePayload
+    let resolvedContentSize: CGSize?
 
     @Default(.enableExtensionNotchInteractiveWebViews) private var interactiveWebViewsEnabled
 
@@ -191,7 +192,6 @@ struct ExtensionNotchExperienceTabView: View {
     private var allowInteractiveWebViews: Bool {
         interactiveWebViewsEnabled && (tabConfiguration?.allowWebInteraction ?? false)
     }
-
     var body: some View {
         Group {
             if let tabConfiguration {
@@ -208,7 +208,7 @@ struct ExtensionNotchExperienceTabView: View {
                         }
                         if let webDescriptor = tabConfiguration.webContent {
                             ExtensionWebContentView(descriptor: webDescriptor, allowInteraction: allowInteractiveWebViews)
-                                .frame(height: webDescriptor.preferredHeight)
+                                .frame(height: resolvedWebContentHeight(for: webDescriptor))
                                 .frame(maxWidth: webDescriptor.maximumContentWidth ?? .infinity)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
@@ -229,7 +229,13 @@ struct ExtensionNotchExperienceTabView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(
+            minWidth: resolvedContentSize?.width,
+            maxWidth: resolvedContentSize?.width ?? .infinity,
+            minHeight: resolvedContentSize?.height,
+            maxHeight: resolvedContentSize?.height ?? .infinity,
+            alignment: .top
+        )
         .background(tabBackground)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
@@ -262,6 +268,21 @@ struct ExtensionNotchExperienceTabView: View {
             }
             Spacer(minLength: 0)
         }
+    }
+
+    private func resolvedWebContentHeight(for descriptor: AtollWidgetWebContentDescriptor) -> CGFloat {
+        guard let resolvedContentSize,
+              ExtensionNotchSizing.requestedDimension(
+                  metadata: self.descriptor.metadata,
+                  key: ExtensionNotchSizing.preferredHeightMetadataKey
+              ) != nil else {
+            return descriptor.preferredHeight
+        }
+
+        // The resolved content height already excludes host navigation and shell padding.
+        // Keep the web region inside it even when metadata is oversized.
+        let chromeHeight: CGFloat = 78
+        return max(0, resolvedContentSize.height - chromeHeight)
     }
 
     private var tabBackground: some View {
